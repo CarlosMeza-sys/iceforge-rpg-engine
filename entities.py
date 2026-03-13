@@ -40,6 +40,15 @@ class Personaje(ABC):
         """
         return self.__poder_ataque
     
+    # ----- Setter -----
+
+    def _set_vida_actual(self, nueva_vida: int) -> None:
+        """
+        Método protegido: permite a las clases hijas modificar la vida
+        de forma controlada, sin exponer el atributo directamente.
+        """
+        self.__vida_actual = nueva_vida
+    
     # ----- Logica de comportamiento compartido -----
     
     def esta_vivo(self) -> bool:
@@ -79,3 +88,111 @@ class Personaje(ABC):
             El daño infligido (para que la UI pueda narrarlo).
         """
         pass
+
+class Guerrero(Personaje):
+    """
+    Clase tanque: daño constante y predecible.
+    Su atacar() siempre hace el mismo daño.
+    """
+    def __init__(self):
+        # El Guerrero SIEMPRE tiene estos stats base.
+        super().__init__(nombre='El Rompehielos', vida_maxima=120, poder_ataque=15)
+    
+    def atacar(self, objetivo: 'Personaje') -> int:
+        """Ataque directo: daño constante basado en poder_ataque."""
+        danho_base = self.get_poder_ataque()
+        danho_real = objetivo.recibir_danho(danho_base)
+        return danho_real
+    
+class Mago(Personaje):
+    """
+    Clase de alto riesgo / alta recompensa.
+
+    Su atacar() tiene probabilidad de golpe crítico (x2),
+    golpe normal o fallar. Usa random para decidir.
+ 
+    Atributos adicionales (privados):
+        __probabilidad_critico: Chance de hacer mas daño.
+        __probabilidad_fallo: Chance de fallar el ataque.
+    """
+    def __init__(self):
+
+        super().__init__(nombre='El Mago de la Chispa', vida_maxima=80, poder_ataque=20)
+        self.__probabilidad_critico = 0.3   # 30% de chance de crítico
+        self.__probabilidad_fallo = 0.2     # 20% de chance de fallar
+
+    def atacar(self, objetivo: "Personaje") -> int:
+        """
+        Ataque mágico con chances de crítico y fallo.
+
+        Tira un número entre 0 y 1:
+        Si cae dentro de la probabilidad de fallo,
+        el daño es 0.
+        Si cae dentro del rango de la probabilidad
+        del golpe critico, el daño se duplica.
+        Si no, hace daño normal.
+        """
+        danho_base = self.get_poder_ataque()
+        probabilidad = random.random()
+        if probabilidad <= self.__probabilidad_fallo:
+            danho = 0
+        elif probabilidad >= 1.0 - self.__probabilidad_critico:
+            danho = danho_base * 2  # Golpe crítico
+        else:
+            danho = danho_base
+        
+        return objetivo.recibir_danho(danho)
+
+class Enemigo(Personaje):
+    """
+    Entidad hostil controlada por el sistema (no por el jugador).
+ 
+    Su atacar() incluye una decisión interna: puede atacar normal
+    o defenderse (no hacer daño pero recuperar algo de vida).
+
+    Atributos adicionales (privados):
+        __probabilidad_defensa: Chance de que elija defenderse (0.0 a 1.0).
+    """
+    def __init__(self, nombre: str, vida_maxima: int, poder_ataque: int):
+        # El Enemigo recibe stats variables.
+        # Esto hace la clase más extensible sin necesidad de crear subclases.
+        super().__init__(nombre=nombre, vida_maxima=vida_maxima, poder_ataque=poder_ataque)
+        self.__probabilidad_defensa = 0.25  # 25% de chance de defenderse
+
+    def atacar(self, objetivo: 'Personaje') -> int:
+        """
+        Decisión interna del enemigo: atacar o defenderse.
+ 
+        Si se defiende, no hace daño pero recupera vida.
+        Retorna 0 cuando se defiende.
+        """
+        if self.__decidir_accion() == 'defender':
+            self.__defender()
+            return 0    # No hizo daño - señal para la UI
+        
+        danho = self.get_poder_ataque()
+        danho_real = objetivo.recibir_danho(danho)
+        return danho_real
+    
+    def __decidir_accion(self) -> str:
+        """
+        Método privado: la lógica de decisión del Enemigo.
+        """
+        if random.random() <= self.__probabilidad_defensa:
+            return 'defender'
+        return 'atacar'
+    
+    def __defender(self) -> None:
+        """
+        Método privado: el enemigo se cura un poco en vez de atacar.
+        """
+        curacion = 5
+        vida_nueva = self.get_vida_actual() + curacion
+
+        # No curar mas alla del máximo
+        if vida_nueva > self.get_vida_maxima():
+            vida_nueva = self.get_vida_maxima()
+
+        # Acceso controlado al atributo del padre via name mangling
+        # Trade-off: rompemos un poco el encapsulamiento.
+        self._set_vida_actual(vida_nueva)
