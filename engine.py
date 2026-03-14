@@ -32,7 +32,7 @@ class Game:
         else:
             self.__jugador = Mago()
 
-        self.__enemigo = Enemigo(nombre='El Guardián del Silencio', vida_maxima=100, poder_ataque=12)
+        self.__enemigo = Enemigo(nombre='El Guardián del Silencio', vida_maxima=100, poder_ataque=15)
 
     def loop_principal(self) -> None:
         """

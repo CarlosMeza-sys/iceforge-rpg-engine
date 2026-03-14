@@ -96,7 +96,7 @@ class Guerrero(Personaje):
     """
     def __init__(self):
         # El Guerrero SIEMPRE tiene estos stats base.
-        super().__init__(nombre='El Rompehielos', vida_maxima=120, poder_ataque=15)
+        super().__init__(nombre='El Rompehielos', vida_maxima=100, poder_ataque=15)
     
     def atacar(self, objetivo: 'Personaje') -> int:
         """Ataque directo: daño constante basado en poder_ataque."""
@@ -186,7 +186,7 @@ class Enemigo(Personaje):
         """
         Método privado: el enemigo se cura un poco en vez de atacar.
         """
-        curacion = 5
+        curacion = 10
         vida_nueva = self.get_vida_actual() + curacion
 
         # No curar mas alla del máximo
